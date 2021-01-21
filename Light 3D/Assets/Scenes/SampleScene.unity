@@ -649,7 +649,14 @@ MonoBehaviour:
   linePrefab: {fileID: 8064901179033470994, guid: 91570d94aa329b04d83563b323b9a8c2, type: 3}
   lenght: 20
   reflectionLimit: 2
-  isStatic: 1
+  isStatic: 0
+  mixed: 0
+  enableSurfaceInstantination: 0
+  surfacePrefab: {fileID: 4585644106995134025, guid: 6496edd3bfef8c64dbbba0103101b5ed, type: 3}
+  useScalingByObjectCount: 1
+  scaleFactor: 0.5
+  useNormalRotation: 0
+  useColorChanging: 0
   hitenObject: []
 --- !u!1 &466941326
 GameObject:

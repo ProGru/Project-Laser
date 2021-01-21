@@ -22,16 +22,33 @@ public class LaserBehavior : MonoBehaviour
     public bool isStatic = false;
     [Tooltip("If selected color from bouncing surface with reflected tag wil be mixed, else change color to object color")]
     public bool mixed = false;
+    [Header("Surface Instantination")]
+    [Tooltip("If selected in the place where ray connect with surface the object will be instantinated")]
+    public bool enableSurfaceInstantination = false;
+    [Tooltip("Prefab for Surface instantination")]
+    public GameObject surfacePrefab;
+    [Tooltip("If selected scale wil change for each object instantinated")]
+    public bool useScalingByObjectCount;
+    [Tooltip("Change of object scale per object")]
+    public float scaleFactor = 1;
+    [Tooltip("If selected set rotation to surface normal")]
+    public bool useNormalRotation;
+    [Tooltip("If selected set color to surface material color")]
+    public bool useColorChanging;
+
 
 
     List<LineRenderer> lineRendererList = new List<LineRenderer>();
     [SerializeField]
     List<GameObject> hitenObject = new List<GameObject>();
+    List<GameObject> surfaceObjects = new List<GameObject>();
     int createdLasers = 0;
     int lasersInUse = 0;
     int laserReflectionUsage = 0;
+    int surfacePrefabInUse = 0;
     LineRenderer laser;
     LineRenderer prefabLineRenderer;
+    Color surfacePrefabColor;
 
     // Start is called before the first frame update
     void Start()
@@ -39,6 +56,7 @@ public class LaserBehavior : MonoBehaviour
         prefabLineRenderer = linePrefab.GetComponent<LineRenderer>();
         GameObject gmb = Instantiate(linePrefab);
         laser = gmb.GetComponent<LineRenderer>();
+        surfacePrefabColor = surfacePrefab.GetComponent<MeshRenderer>().sharedMaterials[0].color;
         if (isStatic)
         {
             StartLaser();
@@ -71,6 +89,14 @@ public class LaserBehavior : MonoBehaviour
             i.endColor = prefabLineRenderer.endColor;
         }
         hitenObject.Clear();
+
+        surfacePrefabInUse = 0;
+        foreach (GameObject i in surfaceObjects)
+        {
+            i.transform.position = new Vector3();
+            i.transform.localScale = Vector3.zero;
+            i.transform.rotation = surfacePrefab.transform.localRotation;
+        }
     }
 
     /// <summary>
@@ -105,6 +131,8 @@ public class LaserBehavior : MonoBehaviour
                 laserEndPoint = hit.point;
                 AddObjectToHitenObject(hit.transform.gameObject);
                 CreateLaserRay(hit, direction, laserCount + 1, line);
+                SurfacePrefabInstantination(hit);
+
             }
             else
             {
@@ -140,6 +168,8 @@ public class LaserBehavior : MonoBehaviour
                 laserEndPoint = hit.point;
                 AddObjectToHitenObject(hit.transform.gameObject);
                 CreateLaserRay(hit, direction, 3, usedLaser);
+                SurfacePrefabInstantination(hit);
+                
             }
             else
             {
@@ -258,4 +288,99 @@ public class LaserBehavior : MonoBehaviour
         lasersInUse += 1;
         return usedLaser;
     }
+
+    /// <summary>
+    /// Instantinate surfacePrefab in given point, if there is non used instance of prefab is using this one else create new.
+    /// If use scalingByObjectCount on- set scale depends of item count.
+    /// Set rotation and material color acording to selected obtions
+    /// </summary>
+    ///<param name="hit">RaycastHit from laser ray to hiten object</param>
+    private void SurfacePrefabInstantination(RaycastHit hit)
+    {
+        if (enableSurfaceInstantination)
+        {
+            if (surfaceObjects.Count <= surfacePrefabInUse)
+            {
+                GameObject gmb = Instantiate(surfacePrefab);
+                surfaceObjects.Add(gmb);
+            }
+            GameObject usedLaser = surfaceObjects[surfacePrefabInUse];
+            surfacePrefabInUse++;
+            usedLaser.transform.position = hit.point;
+
+            //scaling option
+            if (useScalingByObjectCount)
+            {
+                usedLaser.transform.localScale = ScaleFactor.ScaleByObjectCout(surfacePrefabInUse, scaleFactor, surfacePrefab.transform.localScale);
+            }
+            else
+            {
+                usedLaser.transform.localScale = ScaleFactor.DefaultScale(surfacePrefab.transform.localScale);
+            }
+            //color changing option
+            if (useColorChanging)
+            {
+                usedLaser.GetComponent<MeshRenderer>().materials[0].color = GetHitenObjectColor(hit);
+            }
+            else
+            {
+                usedLaser.GetComponent<MeshRenderer>().materials[0].color = surfacePrefabColor;
+            }
+            //normal rotation option
+            if (useNormalRotation)
+            {
+                usedLaser.transform.localRotation = Quaternion.FromToRotation(transform.up, hit.normal);
+            }
+
+        }
+        
+    }
+
+    /// <summary>
+    /// Return Color of hiten GameObject
+    /// </summary>
+    /// <param name="hit">Hiten object by laser Ray</param>
+    /// <returns></returns>
+    private Color GetHitenObjectColor(RaycastHit hit)
+    {
+        return hit.transform.GetComponent<MeshRenderer>().materials[0].color;
+    }
+
 }
+
+public class ScaleFactor
+{
+    public static Vector3 ScaleByObjectCout(int count, float factor=1, Vector3? defaultScale = null)
+    {
+        Vector3 defScale;
+        if (defaultScale == null)
+        {
+            defScale = new Vector3(1, 1, 1);
+        }
+        else
+        {
+            defScale = (Vector3)defaultScale;
+        }
+        float scale = count * factor;
+        return new Vector3(defScale.x * scale, defScale.y * scale, defScale.z * scale);
+
+    }
+
+    public static Vector3 DefaultScale(Vector3? defaultScale = null)
+    {
+        Vector3 scale;
+        if (defaultScale == null)
+        {
+            scale = new Vector3(1, 1, 1);
+        }
+        else
+        {
+            scale = (Vector3)defaultScale;
+        }
+        return scale;
+    }
+
+}
+
+
+
